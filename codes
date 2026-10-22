@@ -1,0 +1,52 @@
+!pip install ultralytics roboflow
+from IPython.display import clear_output
+clear_output()
+print("✅ Kurulumlar tamamlandı!")
+
+from roboflow import Roboflow
+
+rf = Roboflow(api_key="iPxmcTyl4C9UAshtsxDh")
+project = rf.workspace("makine-proje").project("makine-gormesi-epejb")
+version = project.version(6)
+dataset = version.download("yolov8")
+
+print("✅ Veri seti indirildi!")
+
+import glob
+
+yaml_files = glob.glob("/content/**/data.yaml", recursive=True)
+
+if yaml_files:
+    data_path = yaml_files[0]
+    print(f"✅ Veri ayar dosyası bulundu: {data_path}")
+else:
+    print("❌ HATA: data.yaml bulunamadı. Lütfen 2. hücreyi tekrar çalıştır.")
+
+from ultralytics import YOLO
+
+model = YOLO('yolov8n.pt')
+
+
+results = model.train(
+    data=data_path,
+    epochs=50,
+    imgsz=640,
+    name='atik_modeli'
+)
+
+from google.colab import files
+import os
+
+print("⏳ Model TFLite formatına çevriliyor...")
+
+model.export(format='tflite')
+
+generated_file = "/content/runs/detect/atik_modeli/weights/best_float32.tflite"
+
+if os.path.exists(generated_file):
+    os.rename(generated_file, "/content/model.tflite")
+
+    files.download("/content/model.tflite")
+    print("🚀 İndirme başladı! Bu dosyayı FlutLab 'assets' klasörüne yükle.")
+else:
+    print(f"⚠️ Dosya otomatik bulunamadı. Lütfen sol menüden 'runs > detect > atik_modeli > weights' klasörünü kontrol et.")
